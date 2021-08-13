@@ -18,13 +18,30 @@ mod filters {
     use warp::http::header::{HeaderMap, HeaderValue};
     use serde::de::DeserializeOwned;
     use super::models::{DB, ListOptions, Employee, Todo};
+    use futures::{FutureExt, StreamExt};
 
     pub fn init() -> impl Filter<Extract=impl Reply, Error=Rejection> + Clone {
         readme()
+            .or(ws())
             .or(hello())
             .or(hi())
             .or(sleep())
             .or(register())
+    }
+
+    pub fn ws() -> impl Filter<Extract=impl Reply, Error=Rejection> + Clone {
+        warp::path("echo")
+            .and(warp::ws())
+            .map(|ws: warp::ws::Ws| {
+                ws.on_upgrade(|websocket| {
+                    let (tx, rx) = websocket.split();
+                    rx.forward(tx).map(|result| {
+                        if let Err(e) = result {
+                            eprintln!("websocket error: {:?}", e);
+                        }
+                    })
+                })
+            })
     }
 
     /// curl http://127.0.0.1:3030
