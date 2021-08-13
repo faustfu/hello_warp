@@ -65,7 +65,7 @@ mod filters {
     /// curl "http://127.0.0.1:3030/todos?offset=3&limit=5"
     pub fn todos_list(
         db: DB,
-    ) -> impl Filter<Extract=impl warp::Reply, Error=warp::Rejection> + Clone {
+    ) -> impl Filter<Extract=impl Reply, Error=Rejection> + Clone {
         warp::path!("todos")
             .and(warp::get())
             .and(warp::query::<ListOptions>())
@@ -76,7 +76,7 @@ mod filters {
     /// curl -d '{"text":"Sean","id":2,"completed":false}' -H "Content-Type: application/json" -X POST http://127.0.0.1:3030/todos
     pub fn todos_create(
         db: DB,
-    ) -> impl Filter<Extract=impl warp::Reply, Error=warp::Rejection> + Clone {
+    ) -> impl Filter<Extract=impl Reply, Error=Rejection> + Clone {
         warp::path!("todos")
             .and(warp::post())
             .and(json_body::<Todo>())
@@ -87,7 +87,7 @@ mod filters {
     /// curl -d '{"text":"Sean","id":2,"completed":true}' -H "Content-Type: application/json" -X PUT http://127.0.0.1:3030/todos/2
     pub fn todos_update(
         db: DB,
-    ) -> impl Filter<Extract=impl warp::Reply, Error=warp::Rejection> + Clone {
+    ) -> impl Filter<Extract=impl Reply, Error=Rejection> + Clone {
         warp::path!("todos" / u64)
             .and(warp::put())
             .and(json_body::<Todo>())
@@ -98,7 +98,7 @@ mod filters {
     /// curl -H "Authorization: Bearer admin" -X DELETE http://127.0.0.1:3030/todos/2
     pub fn todos_delete(
         db: DB,
-    ) -> impl Filter<Extract=impl warp::Reply, Error=warp::Rejection> + Clone {
+    ) -> impl Filter<Extract=impl Reply, Error=Rejection> + Clone {
         // We'll make one of our endpoints admin-only to show how authentication filters are used
         let admin_only = warp::header::exact("authorization", "Bearer admin");
 
@@ -151,7 +151,7 @@ mod handlers {
         Ok(warp::reply::json(&employee))
     }
 
-    pub async fn sleepy(Seconds(seconds): Seconds) -> Result<impl warp::Reply, Infallible> {
+    pub async fn sleepy(Seconds(seconds): Seconds) -> Result<impl Reply, Infallible> {
         tokio::time::sleep(Duration::from_secs(seconds)).await;
         Ok(format!("I waited {} seconds!", seconds))
     }
@@ -188,19 +188,19 @@ mod handlers {
         Ok(warp::reply::with_status(json, code))
     }
 
-    pub async fn list_todos(opts: ListOptions, db: DB) -> Result<impl warp::Reply, Infallible> {
+    pub async fn list_todos(opts: ListOptions, db: DB) -> Result<impl Reply, Infallible> {
         // Just return a JSON array of todos, applying the limit and offset.
         let todos = db.lock().await;
         let todos: Vec<Todo> = todos
             .clone()
             .into_iter()
             .skip(opts.offset.unwrap_or(0))
-            .take(opts.limit.unwrap_or(std::usize::MAX))
+            .take(opts.limit.unwrap_or(usize::MAX))
             .collect();
         Ok(warp::reply::json(&todos))
     }
 
-    pub async fn create_todo(create: Todo, db: DB) -> Result<impl warp::Reply, Infallible> {
+    pub async fn create_todo(create: Todo, db: DB) -> Result<impl Reply, Infallible> {
         let mut vec = db.lock().await;
 
         for todo in vec.iter() {
@@ -220,7 +220,7 @@ mod handlers {
         id: u64,
         update: Todo,
         db: DB,
-    ) -> Result<impl warp::Reply, Infallible> {
+    ) -> Result<impl Reply, Infallible> {
         let mut vec = db.lock().await;
 
         // Look for the specified Todo...
@@ -235,7 +235,7 @@ mod handlers {
         Ok(StatusCode::NOT_FOUND)
     }
 
-    pub async fn delete_todo(id: u64, db: DB) -> Result<impl warp::Reply, Infallible> {
+    pub async fn delete_todo(id: u64, db: DB) -> Result<impl Reply, Infallible> {
         let mut vec = db.lock().await;
 
         let len = vec.len();
@@ -394,5 +394,4 @@ mod tests {
             completed: false,
         }
     }
-
 }
