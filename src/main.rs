@@ -20,10 +20,18 @@ mod filters {
     use super::models::{DB, ListOptions, Employee, Todo};
 
     pub fn init() -> impl Filter<Extract=impl Reply, Error=Rejection> + Clone {
-        hello()
+        readme()
+            .or(hello())
             .or(hi())
             .or(sleep())
             .or(register())
+    }
+
+    /// curl http://127.0.0.1:3030
+    pub fn readme() -> impl Filter<Extract=impl Reply, Error=Rejection> + Clone {
+        warp::get()
+            .and(warp::path::end())
+            .and(warp::fs::file("./README.md"))
     }
 
     /// curl http://127.0.0.1:3030/hello/m1
